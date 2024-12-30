@@ -1,8 +1,10 @@
 import TelegramBot from "node-telegram-bot-api";
 import axios from "axios";
+import dotenv from "dotenv";
 
+dotenv.config()
 // Create a new bot instance
-const app = new TelegramBot("7595102596:AAFseQnhpR-hSSTlst25i6UcphbuQ_oEwdg", { polling: true });
+const app = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
 
 // Function to fetch and send a joke
 const sayJoke = async (msg) => {
