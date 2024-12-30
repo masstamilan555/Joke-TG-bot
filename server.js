@@ -1,47 +1,56 @@
-import TelegramBot from "node-telegram-bot-api";
-import axios from "axios";
-import dotenv from "dotenv";
+const express = require("express");
+const TelegramBot = require("node-telegram-bot-api");
+const axios = require("axios");
+const dotenv = require("dotenv");
 
-dotenv.config()
-// Create a new bot instance
-const app = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
+dotenv.config();
 
-// Function to fetch and send a joke
-const sayJoke = async (msg) => {
-    try {
-        const response = await axios.get('https://official-joke-api.appspot.com/random_joke');
-        const { setup, punchline } = response.data;
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-        app.sendMessage(msg.chat.id, `${setup} 🤔💭\n\n${punchline} 😂😂😂`);
-    } catch (error) {
-        console.error(error);
-        app.sendMessage(msg.chat.id, "Oops! I couldn't fetch a joke at the moment. Please try again later.");
-    }
-};
+const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
+bot.setWebHook(`https://joke-tg-bot.onrender.com/bot${process.env.TELEGRAM_BOT_TOKEN}`);
 
-// Respond to the /start command with a custom menu
-app.onText(/\/start/, (msg) => {
-    app.sendMessage(msg.chat.id, "Welcome to the Joke Bot! 🎉", {
+app.use(express.json());
+
+app.post(`/bot${process.env.TELEGRAM_BOT_TOKEN}`, (req, res) => {
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+});
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
+
+bot.onText(/\/start/, (msg) => {
+    bot.sendMessage(msg.chat.id, "Welcome to the Joke Bot! 🎉", {
         reply_markup: {
             keyboard: [
                 [{ text: "Get a Joke 😂" }],
                 [{ text: "Help 🆘" }]
             ],
-            resize_keyboard: true, // Adjust keyboard size for mobile
-            one_time_keyboard: false // Keep the menu persistent
+            resize_keyboard: true,
+            one_time_keyboard: false
         }
     });
 });
 
-// Handle menu options
-app.on('message', (msg) => {
-    const text = msg.text?.toLowerCase();
+const sayJoke = async (msg) => {
+    try {
+        const response = await axios.get("https://official-joke-api.appspot.com/random_joke");
+        const { setup, punchline } = response.data;
+        bot.sendMessage(msg.chat.id, `${setup} 🤔💭\n\n${punchline} 😂😂😂`);
+    } catch (error) {
+        bot.sendMessage(msg.chat.id, "Oops! Something went wrong.");
+    }
+};
 
-    if (text === "get a joke 😂") {
+bot.on("message", (msg) => {
+    if (msg.text.toLowerCase() === "get a joke 😂") {
         sayJoke(msg);
-    } else if (text === "help 🆘") {
-        app.sendMessage(msg.chat.id, "Use the menu or type:\n/start - Start the bot\n/joke - Get a random joke");
+    } else if (msg.text.toLowerCase() === "help 🆘") {
+        bot.sendMessage(msg.chat.id, "Type /start to see the menu or /joke to get a random joke.");
     } else {
-        app.sendMessage(msg.chat.id, "I don't understand that command. Try using the menu or typing /start.");
+        bot.sendMessage(msg.chat.id, "I don't understand that. Try using the menu.");
     }
 });
